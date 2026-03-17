@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  hashedPassword String
+  role           String    @default("member") // admin, manager, member
+  avatarUrl      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  interactions       Interaction[]
+  followUpsAssigned  FollowUp[]         @relation("AssignedFollowUps")
+  dealsCreated       Deal[]
+  eventsCreated      Event[]
+  dealStageChanges   DealStageHistory[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6B7280")
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+
+  contactTags ContactTag[]
+  companyTags CompanyTag[]
+
+  @@unique([name, category])
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("other") // gaming_operator, supplier, association, media, regulator, technology, legal, financial, other
+  website     String?
+  linkedinUrl String?
+  country     String?
+  region      String   @default("bulgaria") // bulgaria, balkans, europe, global
+  size        String? // small, medium, large, enterprise
+  isMember    Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts      Contact[]
+  tags          CompanyTag[]
+  deals         Deal[]
+  interactions  Interaction[]
+  eventSponsors EventSponsor[]
+}
+
+model Contact {
+  id             String    @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  linkedinUrl    String?
+  title          String?
+  companyId      String?
+  category       String    @default("other") // sponsor, partner, member, media, vip, speaker, government, other
+  leadScore      Int       @default(0)
+  leadTier       String    @default("cold") // cold, warm, hot, qualified
+  nextFollowUpAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company        Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  tags           ContactTag[]
+  interactions   Interaction[]
+  followUps      FollowUp[]
+  deals          Deal[]
+  eventGuests    EventGuest[]
+  eventFollowUps EventFollowUp[]
+  scoreHistory   LeadScoreHistory[]
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+}
+
+model CompanyTag {
+  companyId String
+  tagId     String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, tagId])
+}
+
+model Interaction {
+  id          String   @id @default(cuid())
+  contactId   String?
+  companyId   String?
+  dealId      String?
+  type        String // email, call, meeting, linkedin, note, whatsapp
+  direction   String? // inbound, outbound
+  subject     String?
+  content     String?
+  outcome     String?
+  occurredAt  DateTime @default(now())
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  deal      Deal?    @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation(fields: [createdById], references: [id])
+}
+
+model FollowUp {
+  id           String    @id @default(cuid())
+  contactId    String
+  title        String
+  dueDate      DateTime
+  priority     String    @default("medium") // low, medium, high, critical
+  status       String    @default("pending") // pending, completed, overdue
+  assignedToId String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  contact    Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedTo User?   @relation("AssignedFollowUps", fields: [assignedToId], references: [id])
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  companyId         String?
+  contactId         String?
+  stage             String    @default("initial_contact") // initial_contact, discovery, proposal, negotiation, closed_won, closed_lost
+  dealType          String // sponsorship, advertising, membership, event, partnership
+  valueEur          Float?
+  probability       Int       @default(10)
+  expectedCloseDate DateTime?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company      Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact      Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  createdBy    User?              @relation(fields: [createdById], references: [id])
+  interactions Interaction[]
+  stageHistory DealStageHistory[]
+}
+
+model DealStageHistory {
+  id          String   @id @default(cuid())
+  dealId      String
+  fromStage   String?
+  toStage     String
+  changedById String?
+  changedAt   DateTime @default(now())
+  notes       String?
+
+  deal      Deal  @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  eventType   String // gala_dinner, conference, networking, workshop, awards
+  venue       String?
+  description String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  maxCapacity Int?
+  dressCode   String?
+  status      String    @default("draft") // draft, active, completed, cancelled
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy User?          @relation(fields: [createdById], references: [id])
+  guests    EventGuest[]
+  sponsors  EventSponsor[]
+  followUps EventFollowUp[]
+}
+
+model EventGuest {
+  id                  String    @id @default(cuid())
+  eventId             String
+  contactId           String?
+  guestName           String
+  guestEmail          String?
+  tier                String    @default("general") // vip, sponsor, speaker, media, partner, member, general
+  tableNumber         Int?
+  dietaryRequirements String?
+  plusOne             Boolean   @default(false)
+  plusOneName         String?
+  rsvpStatus          String    @default("pending") // pending, confirmed, declined, tentative
+  rsvpToken           String    @unique @default(cuid())
+  invitationSentAt    DateTime?
+  rsvpRespondedAt     DateTime?
+  checkedIn           Boolean   @default(false)
+  checkedInAt         DateTime?
+  qrCodeData          String?
+  notes               String?
+  createdAt           DateTime  @default(now())
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+}
+
+model EventSponsor {
+  id          String   @id @default(cuid())
+  eventId     String
+  companyId   String
+  sponsorTier String // title, gold, silver, bronze, media
+  amountEur   Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model EventFollowUp {
+  id        String    @id @default(cuid())
+  eventId   String
+  contactId String?
+  type      String?
+  notes     String?
+  status    String    @default("pending") // pending, completed
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+}
+
+model LeadScoringRule {
+  id        String   @id @default(cuid())
+  factor    String
+  condition String // JSON string
+  points    Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model LeadScoreHistory {
+  id        String   @id @default(cuid())
+  contactId String
+  oldScore  Int
+  newScore  Int
+  reason    String?
+  scoredAt  DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}

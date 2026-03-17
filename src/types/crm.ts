@@ -1,101 +1,87 @@
-import { Database } from '@/lib/supabase/database.types'
+import type {
+  Company,
+  Contact,
+  Tag,
+  Interaction,
+  FollowUp,
+  Deal,
+  DealStageHistory,
+  ContactTag,
+  CompanyTag,
+  LeadScoringRule,
+  LeadScoreHistory,
+} from "@prisma/client"
 
-// ─── Row types (read from DB) ───────────────────────────────────────────────
-export type Profile = Database['public']['Tables']['profiles']['Row']
-export type Tag = Database['public']['Tables']['tags']['Row']
-export type Company = Database['public']['Tables']['companies']['Row']
-export type Contact = Database['public']['Tables']['contacts']['Row']
-export type Interaction = Database['public']['Tables']['interactions']['Row']
-export type FollowUp = Database['public']['Tables']['follow_ups']['Row']
-export type Deal = Database['public']['Tables']['deals']['Row']
-export type DealStageHistory = Database['public']['Tables']['deal_stage_history']['Row']
-export type LeadScoringRule = Database['public']['Tables']['lead_scoring_rules']['Row']
-export type LeadScoreHistory = Database['public']['Tables']['lead_score_history']['Row']
+// Re-export Prisma types
+export type {
+  Company,
+  Contact,
+  Tag,
+  Interaction,
+  FollowUp,
+  Deal,
+  DealStageHistory,
+  ContactTag,
+  CompanyTag,
+  LeadScoringRule,
+  LeadScoreHistory,
+}
 
-// ─── Insert types (write to DB) ─────────────────────────────────────────────
-export type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
-export type TagInsert = Database['public']['Tables']['tags']['Insert']
-export type CompanyInsert = Database['public']['Tables']['companies']['Insert']
-export type ContactInsert = Database['public']['Tables']['contacts']['Insert']
-export type InteractionInsert = Database['public']['Tables']['interactions']['Insert']
-export type FollowUpInsert = Database['public']['Tables']['follow_ups']['Insert']
-export type DealInsert = Database['public']['Tables']['deals']['Insert']
-export type DealStageHistoryInsert = Database['public']['Tables']['deal_stage_history']['Insert']
-
-// ─── Update types (partial writes) ──────────────────────────────────────────
-export type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
-export type TagUpdate = Database['public']['Tables']['tags']['Update']
-export type CompanyUpdate = Database['public']['Tables']['companies']['Update']
-export type ContactUpdate = Database['public']['Tables']['contacts']['Update']
-export type InteractionUpdate = Database['public']['Tables']['interactions']['Update']
-export type FollowUpUpdate = Database['public']['Tables']['follow_ups']['Update']
-export type DealUpdate = Database['public']['Tables']['deals']['Update']
-
-// ─── Enum types ─────────────────────────────────────────────────────────────
-export type CompanyType = Database['public']['Enums']['company_type']
-export type CompanyRegion = Database['public']['Enums']['company_region']
-export type CompanySize = Database['public']['Enums']['company_size']
-export type ContactCategory = Database['public']['Enums']['contact_category']
-export type LeadTier = Database['public']['Enums']['lead_tier']
-export type InteractionType = Database['public']['Enums']['interaction_type']
-export type InteractionDirection = Database['public']['Enums']['interaction_direction']
-export type FollowUpPriority = Database['public']['Enums']['follow_up_priority']
-export type FollowUpStatus = Database['public']['Enums']['follow_up_status']
-export type DealStage = Database['public']['Enums']['deal_stage']
-export type DealType = Database['public']['Enums']['deal_type']
-
-// ─── Extended types with joins ──────────────────────────────────────────────
+// Extended types with relations
 export type ContactWithCompany = Contact & {
   company: Company | null
 }
 
-export type ContactWithTags = Contact & {
-  tags: Tag[]
-}
-
 export type ContactFull = Contact & {
   company: Company | null
-  tags: Tag[]
+  tags: (ContactTag & { tag: Tag })[]
   interactions: Interaction[]
-  follow_ups: FollowUp[]
+  followUps: FollowUp[]
+  deals: Deal[]
 }
 
 export type CompanyWithContacts = Company & {
   contacts: Contact[]
 }
 
-export type CompanyWithTags = Company & {
-  tags: Tag[]
-}
-
 export type CompanyFull = Company & {
   contacts: Contact[]
-  tags: Tag[]
+  tags: (CompanyTag & { tag: Tag })[]
   deals: Deal[]
 }
 
 export type DealWithRelations = Deal & {
   company: Company | null
   contact: Contact | null
-  stage_history: DealStageHistory[]
+  stageHistory: DealStageHistory[]
 }
 
-export type InteractionWithContact = Interaction & {
+export type InteractionWithRelations = Interaction & {
   contact: Contact | null
   company: Company | null
+  deal: Deal | null
 }
 
-export type FollowUpWithContact = FollowUp & {
-  contact: Contact | null
-  assigned_profile: Profile | null
-}
+// Enum-like constants for type safety
+export const COMPANY_TYPES = ["gaming_operator", "supplier", "association", "media", "regulator", "technology", "legal", "financial", "other"] as const
+export const COMPANY_REGIONS = ["bulgaria", "balkans", "europe", "global"] as const
+export const COMPANY_SIZES = ["small", "medium", "large", "enterprise"] as const
+export const CONTACT_CATEGORIES = ["sponsor", "partner", "member", "media", "vip", "speaker", "government", "other"] as const
+export const LEAD_TIERS = ["cold", "warm", "hot", "qualified"] as const
+export const INTERACTION_TYPES = ["email", "call", "meeting", "linkedin", "note", "whatsapp"] as const
+export const INTERACTION_DIRECTIONS = ["inbound", "outbound"] as const
+export const DEAL_STAGES = ["initial_contact", "discovery", "proposal", "negotiation", "closed_won", "closed_lost"] as const
+export const DEAL_TYPES = ["sponsorship", "advertising", "membership", "event", "partnership"] as const
+export const FOLLOW_UP_PRIORITIES = ["low", "medium", "high", "critical"] as const
+export const FOLLOW_UP_STATUSES = ["pending", "completed", "overdue"] as const
 
-// ─── Pipeline view types ────────────────────────────────────────────────────
-export type PipelineColumn = {
-  stage: DealStage
-  deals: DealWithRelations[]
-  total_value: number
-  weighted_value: number
-}
-
-export type PipelineView = PipelineColumn[]
+export type CompanyType = typeof COMPANY_TYPES[number]
+export type CompanyRegion = typeof COMPANY_REGIONS[number]
+export type CompanySize = typeof COMPANY_SIZES[number]
+export type ContactCategory = typeof CONTACT_CATEGORIES[number]
+export type LeadTier = typeof LEAD_TIERS[number]
+export type InteractionType = typeof INTERACTION_TYPES[number]
+export type DealStage = typeof DEAL_STAGES[number]
+export type DealType = typeof DEAL_TYPES[number]
+export type FollowUpPriority = typeof FOLLOW_UP_PRIORITIES[number]
+export type FollowUpStatus = typeof FOLLOW_UP_STATUSES[number]
