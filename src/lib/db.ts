@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const url = process.env.TURSO_DATABASE_URL
+  const url = process.env.TURSO_DATABASE_URL?.trim()
 
   // In development, use file-based SQLite for simplicity
   if (!url || url.startsWith("file:")) {
@@ -16,7 +16,7 @@ function createPrismaClient() {
   // In production, use Turso
   const adapter = new PrismaLibSql({
     url,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    authToken: process.env.TURSO_AUTH_TOKEN?.trim(),
   })
   return new PrismaClient({ adapter })
 }

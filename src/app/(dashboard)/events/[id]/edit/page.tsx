@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { notFound } from "next/navigation"
 import { getEvent } from "@/actions/events"
 import { PageHeader } from "@/components/shared/page-header"

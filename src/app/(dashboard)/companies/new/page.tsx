@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { PageHeader } from "@/components/shared/page-header"
 import { CompanyForm } from "@/components/companies/company-form"
 import { getCompany } from "@/actions/companies"

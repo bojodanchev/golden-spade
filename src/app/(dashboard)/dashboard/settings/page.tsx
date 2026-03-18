@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getSession } from "@/lib/auth-helpers"
 import { getScoringRules } from "@/actions/lead-scoring"
 import { SettingsTabs } from "@/components/dashboard/settings-tabs"

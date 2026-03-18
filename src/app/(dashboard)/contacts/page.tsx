@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import Link from "next/link"
 import { getContacts } from "@/actions/contacts"
 import { PageHeader } from "@/components/shared/page-header"

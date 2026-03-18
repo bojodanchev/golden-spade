@@ -3,13 +3,13 @@ import { PrismaLibSql } from "@prisma/adapter-libsql"
 import bcrypt from "bcryptjs"
 
 function createPrisma() {
-  const url = process.env.TURSO_DATABASE_URL
+  const url = process.env.TURSO_DATABASE_URL?.trim()
   if (!url || url.startsWith("file:")) {
     return new PrismaClient()
   }
   const adapter = new PrismaLibSql({
     url,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    authToken: process.env.TURSO_AUTH_TOKEN?.trim(),
   })
   return new PrismaClient({ adapter })
 }
