@@ -1,63 +1,86 @@
-# Golden Spades - CRM & Event Management
+# Project: Golden Spades
 
-## Project Overview
-Golden Spades is a premium CRM and event management platform for a poker club. It manages contacts, companies, deal pipelines, events/tournaments, and member invitations with QR code support.
+CRM & Event Management platform for СОХИДБ (Bulgaria's gaming industry association). Manages contacts, companies, deal pipeline, events/invitations. (Next.js 16, Prisma + Turso SQLite, NextAuth, shadcn/ui)
 
-## Tech Stack
-- **Framework**: Next.js 16 (App Router, TypeScript)
-- **Styling**: Tailwind CSS v4 + shadcn/ui
-- **Database**: Supabase (PostgreSQL + Auth + Storage)
-- **Email**: Resend
-- **Charts**: Recharts
-- **Drag & Drop**: @dnd-kit
-- **QR Codes**: qrcode
-- **Icons**: lucide-react
-
-## File Structure
-```
-src/
-  app/
-    layout.tsx          # Root layout (fonts, providers)
-    page.tsx            # Root redirect (→ /dashboard or /login)
-    (auth)/
-      login/page.tsx    # Login page
-    (dashboard)/
-      layout.tsx        # Sidebar + topbar layout
-      page.tsx          # Dashboard home
-      contacts/         # CRM contacts module
-      companies/        # CRM companies module
-      pipeline/         # Deal pipeline (Kanban)
-      events/           # Events & invitations
-      settings/         # User settings
-  components/
-    ui/                 # shadcn/ui components
-    shared/             # Shared app components (search-input, empty-state, etc.)
-  lib/
-    supabase/           # Supabase client configs (client.ts, server.ts, middleware.ts)
-    utils.ts            # Utility functions (cn, formatCurrency, formatDate, etc.)
-    constants.ts        # Stage, tier, category, region configs
-middleware.ts           # Route protection middleware
-```
-
-## Brand Design Tokens
-- **Primary**: Deep Blue #1a365d
-- **Secondary**: Gold #d69e2e
-- **Text**: #2d3748
-- **Background**: #f7fafc
-- **Fonts**: Montserrat (headings), Open Sans (body), Roboto Mono (numbers/code)
-
-## Common Commands
+## Quick Start
 ```bash
-npm run dev          # Start dev server
-npm run build        # Production build
-npm run lint         # Run ESLint
+npm install
+npx prisma generate && npx prisma db push && npx prisma db seed
+npm run dev    # http://localhost:3000 — login: admin@goldenspades.com / admin123
 ```
 
-## Key Conventions
-- Use `createClient()` from `@/lib/supabase/server` for Server Components
-- Use `createClient()` from `@/lib/supabase/client` for Client Components
-- Use `font-heading` class for headings (Montserrat)
-- Use `font-mono` class for numeric data (Roboto Mono)
-- Use brand color utilities: `bg-brand-primary`, `text-brand-secondary`, etc.
-- Shared components are in `src/components/shared/`
-- UI primitives are in `src/components/ui/` (shadcn - do not edit directly)
+## Key Commands
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server |
+| `npm run build` | Production build (uses --webpack) |
+| `npx prisma generate` | Regenerate client after schema changes |
+| `npx prisma db push` | Push schema to database |
+| `npx prisma db seed` | Seed demo data (30 companies, 43 contacts, deals, gala event) |
+| `npx prisma studio` | DB GUI |
+
+## Project Structure
+```
+src/app/(dashboard)/dashboard/   # All CRM pages (contacts, companies, pipeline, events, settings)
+src/app/(auth)/login/            # Login page
+src/app/rsvp/[token]/            # Public RSVP (no auth)
+src/actions/                     # Server Actions (all data mutations)
+src/components/{ui,shared,contacts,companies,pipeline,events,dashboard}/
+src/lib/db.ts                    # Prisma singleton (Turso in prod, file SQLite in dev)
+src/lib/auth.ts                  # NextAuth config
+prisma/schema.prisma             # 16 models
+prisma/seed.ts                   # Real gambling industry demo data
+```
+
+## Architecture Pointers
+> Deep dive: [docs/architecture.md](docs/architecture.md)
+
+- **Route group trap**: `(dashboard)` doesn't create URL segment. Pages go in `(dashboard)/dashboard/` for `/dashboard/*` URLs
+- **DB access**: Always import `db` from `@/lib/db`, never instantiate PrismaClient
+- **Auth**: `getSession()` from `@/lib/auth-helpers` (server), `signIn`/`signOut` from `next-auth/react` (client)
+- **All DB pages**: Must export `const dynamic = "force-dynamic"` to prevent build-time prerendering
+- **Server Actions**: `"use server"` files in `src/actions/`. One file per module.
+
+## Environment
+> Details: [docs/environment.md](docs/environment.md)
+
+Requires: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (prod), `DATABASE_URL` (Prisma CLI), `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+
+## Brand
+- Primary: Deep Blue `#1a365d` | Secondary: Gold `#d69e2e`
+- Fonts: `font-heading` (Montserrat), `font-sans` (Open Sans), `font-mono` (Roboto Mono)
+- shadcn/ui components in `src/components/ui/` — don't edit directly
+
+## Rules & Style
+- Use `cn()` from `@/lib/utils` for conditional classes
+- Use `formatCurrency()`, `formatDate()`, `timeAgo()` from `@/lib/utils`
+- Stage/tier/category configs with labels+colors in `src/lib/constants.ts`
+- Shared components (page-header, search-input, empty-state, confirm-dialog) in `src/components/shared/`
+- Types: import from `@/types/crm` and `@/types/events` (re-export Prisma types)
+
+## Gotchas (Top 5)
+> Full list: [docs/gotchas.md](docs/gotchas.md)
+
+- Pages must be under `(dashboard)/dashboard/` not `(dashboard)/` for correct `/dashboard/*` URLs
+- Prisma schema URL stays `file:./dev.db` even for Turso — adapter handles runtime connection
+- `useSearchParams()` needs `<Suspense>` wrapper in Next.js 16
+- Vercel env vars: use `printf` not `echo` to avoid trailing newline breaking Turso URL
+- Build uses `--webpack` flag (Turbopack has Google Fonts fetch issues in CI)
+
+## Recent Decisions
+> History: [docs/decisions/](docs/decisions/)
+
+- [2026-03-18] Supabase → Prisma + SQLite (Turso) — simpler for demo, zero infrastructure locally
+
+## Active Context
+- Production: https://golden-spade.vercel.app (auto-deploys from main)
+- Repo: https://github.com/bojodanchev/golden-spade
+- DB: Turso cloud SQLite (golden-spade-bojodanchev.aws-eu-west-1.turso.io)
+- Demo data: 30 real Balkan gambling companies, 43 C-level execs, 13 pipeline deals, gala dinner Nov 2026
+
+## Discovery Log (Recent)
+> Full log: [docs/discovery-log.md](docs/discovery-log.md)
+
+- [2026-03-18] Route 404s fixed — route group URL mapping required nested `dashboard/` directory
+- [2026-03-18] Turso env var must use `libsql://` protocol, no trailing newline
+- [2026-03-18] Prisma 7 incompatible — staying on 6.19.2 LTS
